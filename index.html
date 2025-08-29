@@ -1,0 +1,49 @@
+=== src/components/Market.jsx ===
+import React, { useEffect, useState } from 'react'
+
+const SAMPLE_SYMBOLS = ['AAPL','MSFT','GOOG','TSLA','AMZN','NFLX','BTC-USD']
+
+// simple helper: returns random small price variation
+const jitter = (v) => +(v * (1 + (Math.random()-0.5)*0.01)).toFixed(2)
+
+export default function Market({ selected, onSelect }) {
+  const [prices, setPrices] = useState(() => {
+    // initial mocked base prices
+    const map = { AAPL: 172.34, MSFT: 330.12, GOOG: 142.88, TSLA: 250.1, AMZN: 140.5, NFLX: 470.2, 'BTC-USD': 47000 }
+    return SAMPLE_SYMBOLS.map(s => ({ symbol: s, price: map[s] || 100 }))
+  })
+
+  useEffect(() => {
+    // poll serverless /api/prices every 2s (it returns mock or real proxied data)
+    let mounted = true
+    const fetchPrices = async () => {
+      try {
+        const res = await fetch('/api/prices')
+        const json = await res.json()
+        if (!mounted) return
+        // server returns { symbol: price } mapping
+        setPrices(prev => prev.map(p => ({ ...p, price: json[p.symbol] ? json[p.symbol] : jitter(p.price) })))
+      } catch (e) {
+        // fallback: jitter local values
+        setPrices(prev => prev.map(p => ({ ...p, price: jitter(p.price) })))
+      }
+    }
+    fetchPrices()
+    const id = setInterval(fetchPrices, 2000)
+    return () => { mounted = false; clearInterval(id) }
+  }, [])
+
+  return (
+    <div>
+      <h3>Markets</h3>
+      <ul className="market-list">
+        {prices.map(p => (
+          <li key={p.symbol} className={p.symbol === selected ? 'active' : ''} onClick={() => onSelect(p.symbol)}>
+            <div className="sym">{p.symbol}</div>
+            <div className="price">{p.price}</div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
