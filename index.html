@@ -1,49 +1,277 @@
-=== src/components/Market.jsx ===
-import React, { useEffect, useState } from 'react'
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>TradeApp — Portfolio</title>
+  <meta name="description" content="Portfolio page for TradeApp — a demo trading app. See features, preview, and deploy instructions for GitHub & Vercel." />
 
-const SAMPLE_SYMBOLS = ['AAPL','MSFT','GOOG','TSLA','AMZN','NFLX','BTC-USD']
-
-// simple helper: returns random small price variation
-const jitter = (v) => +(v * (1 + (Math.random()-0.5)*0.01)).toFixed(2)
-
-export default function Market({ selected, onSelect }) {
-  const [prices, setPrices] = useState(() => {
-    // initial mocked base prices
-    const map = { AAPL: 172.34, MSFT: 330.12, GOOG: 142.88, TSLA: 250.1, AMZN: 140.5, NFLX: 470.2, 'BTC-USD': 47000 }
-    return SAMPLE_SYMBOLS.map(s => ({ symbol: s, price: map[s] || 100 }))
-  })
-
-  useEffect(() => {
-    // poll serverless /api/prices every 2s (it returns mock or real proxied data)
-    let mounted = true
-    const fetchPrices = async () => {
-      try {
-        const res = await fetch('/api/prices')
-        const json = await res.json()
-        if (!mounted) return
-        // server returns { symbol: price } mapping
-        setPrices(prev => prev.map(p => ({ ...p, price: json[p.symbol] ? json[p.symbol] : jitter(p.price) })))
-      } catch (e) {
-        // fallback: jitter local values
-        setPrices(prev => prev.map(p => ({ ...p, price: jitter(p.price) })))
-      }
+  <link rel="icon" href="data:,">
+  <style>
+    :root{
+      --bg:#071029; --card:#0b1220; --muted:#9aa9bf; --accent:#7c3aed; --glass: rgba(255,255,255,0.03);
+      --glass-2: rgba(255,255,255,0.02);
     }
-    fetchPrices()
-    const id = setInterval(fetchPrices, 2000)
-    return () => { mounted = false; clearInterval(id) }
-  }, [])
+    *{box-sizing:border-box}
+    body,html{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial}
+    body{background:linear-gradient(180deg,#020617 0%, #071029 70%); color:#e8f1ff; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale}
+    .wrap{max-width:1100px;margin:36px auto;padding:28px}
+    header{display:flex;align-items:center;justify-content:space-between;gap:16px}
+    .brand{display:flex;align-items:center;gap:12px}
+    .logo{
+      width:56px;height:56px;border-radius:12px;display:grid;place-items:center;
+      background:linear-gradient(135deg,var(--accent),#06b6d4);font-weight:800;color:white;
+      box-shadow:0 8px 30px rgba(12,10,20,0.6);
+    }
+    h1{font-size:24px;margin:0}
+    .subtitle{color:var(--muted);font-size:13px;margin-top:6px}
 
-  return (
-    <div>
-      <h3>Markets</h3>
-      <ul className="market-list">
-        {prices.map(p => (
-          <li key={p.symbol} className={p.symbol === selected ? 'active' : ''} onClick={() => onSelect(p.symbol)}>
-            <div className="sym">{p.symbol}</div>
-            <div className="price">{p.price}</div>
-          </li>
-        ))}
-      </ul>
-    </div>
-  )
-}
+    .hero{display:grid;grid-template-columns:1fr 420px;gap:26px;margin-top:28px;align-items:start}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.015)); border-radius:14px;padding:18px;box-shadow:0 8px 20px rgba(2,6,23,0.6); border:1px solid rgba(255,255,255,0.03)}
+    .lead{font-size:18px;margin:0 0 10px 0}
+    .cta-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+    .btn{padding:10px 14px;border-radius:10px;border:none;cursor:pointer;font-weight:600}
+    .btn-primary{background:linear-gradient(90deg,var(--accent),#06b6d4);color:white;box-shadow:0 8px 20px rgba(124,58,237,0.12)}
+    .btn-ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted)}
+    .small{font-size:13px;padding:8px 10px;border-radius:8px}
+
+    /* demo trading panel */
+    .panel{display:flex;flex-direction:column;gap:12px}
+    .market-header{display:flex;justify-content:space-between;align-items:center}
+    .market-list{display:flex;gap:10px;flex-wrap:wrap}
+    .sym{background:var(--glass);padding:8px 10px;border-radius:10px;font-weight:700;cursor:pointer;border:1px solid rgba(255,255,255,0.02)}
+    .sym.active{outline:2px solid rgba(124,58,237,0.18);box-shadow:0 6px 18px rgba(124,58,237,0.06)}
+    .price{font-weight:800;font-size:18px}
+    .chart{height:160px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:10px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px}
+    .trade-row{display:flex;gap:8px;align-items:center}
+    .trade-row input[type="number"], .trade-row input[type="text"]{
+      padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit;min-width:90px
+    }
+
+    /* features grid */
+    .features{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:22px}
+    .feat{background:var(--glass-2);padding:14px;border-radius:12px;border:1px solid rgba(255,255,255,0.02)}
+    .feat h4{margin:0 0 6px 0}
+    .muted{color:var(--muted)}
+
+    /* project showcase */
+    .projects{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:22px}
+    .proj{height:140px;border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
+    .proj .meta{padding:12px;background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);flex:1;display:flex;flex-direction:column;justify-content:space-between}
+    .proj .tag{font-size:12px;padding:6px 8px;border-radius:8px;background:rgba(255,255,255,0.02);align-self:flex-start;color:var(--muted)}
+
+    footer{margin-top:26px;text-align:center;color:var(--muted);font-size:13px;padding:24px 0}
+
+    /* responsive */
+    @media (max-width:980px){
+      .hero{grid-template-columns:1fr}
+      .projects{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <div class="logo">TA</div>
+        <div>
+          <h1>TradeApp — Portfolio</h1>
+          <div class="subtitle">A demo trading application — UI preview, features, and deployment guide</div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:8px;align-items:center">
+        <a class="btn btn-ghost small" href="https://github.com/your-username/your-repo" target="_blank" rel="noreferrer">View on GitHub</a>
+        <a class="btn btn-primary small" href="https://vercel.com/new?template=https://github.com/your-username/your-repo" target="_blank" rel="noreferrer">Deploy to Vercel</a>
+      </div>
+    </header>
+
+    <main class="hero">
+      <section class="card">
+        <p class="lead">TradeApp is a demo trading interface built for learning and portfolio showcase. It demonstrates a market list, live-ish price preview, order form (buy/sell), and order history. This page is static and showcases the product and deployment flow.</p>
+
+        <div class="cta-row">
+          <button class="btn btn-primary" onclick="document.getElementById('demo').scrollIntoView({behavior:'smooth'})">Open Demo</button>
+          <a class="btn btn-ghost" href="#features">Features</a>
+          <a class="btn btn-ghost" href="#projects">Projects</a>
+        </div>
+
+        <div id="features" class="features" aria-hidden>
+          <div class="feat">
+            <h4>Realtime-ish Prices</h4>
+            <div class="muted">Mock data updated on interval — swap with real API when ready.</div>
+          </div>
+          <div class="feat">
+            <h4>Order Flow</h4>
+            <div class="muted">Place demo orders — response simulated or handled by serverless APIs.</div>
+          </div>
+          <div class="feat">
+            <h4>Deploy Ready</h4>
+            <div class="muted">Static site + serverless endpoints can be deployed on Vercel.</div>
+          </div>
+        </div>
+
+        <div style="margin-top:16px">
+          <h3 style="margin:0 0 10px 0">Tech Snapshot</h3>
+          <div class="muted">HTML5 • CSS3 • Vanilla JS • Vercel-friendly (static). Replace mock endpoints with serverless functions or a Node backend to add real trading features.</div>
+        </div>
+
+      </section>
+
+      <!-- demo -->
+      <aside id="demo" class="card panel" aria-live="polite">
+        <div class="market-header">
+          <div>
+            <strong>Live Preview</strong>
+            <div class="muted" style="font-size:12px">Mock data — opens in multiple tabs to simulate multiple viewers</div>
+          </div>
+          <div class="muted">Balance: <strong id="balance">₹ 100,000</strong></div>
+        </div>
+
+        <div class="market-list" id="marketList" style="margin-top:8px">
+          <!-- symbols injected by JS -->
+        </div>
+
+        <div class="chart" id="chart">Price chart preview</div>
+
+        <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
+          <div class="trade-row" style="flex:1;gap:6px">
+            <select id="side" style="padding:8px;border-radius:8px;background:transparent;color:inherit;border:1px solid rgba(255,255,255,0.04)">
+              <option value="BUY">BUY</option>
+              <option value="SELL">SELL</option>
+            </select>
+            <input id="qty" type="number" min="1" value="1" />
+            <input id="price" type="text" placeholder="price (market uses live)" />
+            <button id="placeBtn" class="btn btn-primary small">Place Order</button>
+          </div>
+        </div>
+
+        <div style="margin-top:12px">
+          <strong>Orders</strong>
+          <div id="orders" class="muted" style="margin-top:8px">No orders yet</div>
+        </div>
+      </aside>
+    </main>
+
+    <section class="card projects" id="projects">
+      <div class="proj">
+        <div class="meta">
+          <div>
+            <div class="tag">Frontend</div>
+            <h3 style="margin:8px 0 0 0">UI & Trading UX</h3>
+            <div class="muted" style="margin-top:6px">React / Vite or vanilla JS for static demo. Responsive UI and deploy-ready static assets.</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <a class="btn btn-ghost small" href="#" onclick="alert('Open repo')">Source</a>
+            <a class="btn btn-primary small" href="#" onclick="alert('Deploy flow')">Deploy</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="proj">
+        <div class="meta">
+          <div>
+            <div class="tag">Serverless</div>
+            <h3 style="margin:8px 0 0 0">API Endpoints</h3>
+            <div class="muted" style="margin-top:6px">Vercel serverless functions or Next.js API routes for /api/prices and /api/orders.</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <a class="btn btn-ghost small" href="#" onclick="alert('Add serverless')">Add API</a>
+            <a class="btn btn-primary small" href="#" onclick="alert('Test')">Test</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <div class="muted">© <span id="year"></span> TradeApp — Portfolio demo • To deploy: push to GitHub then import to Vercel</div>
+    </footer>
+  </div>
+
+  <script>
+    // Mock market data + simple demo order handling (all client-side)
+    (function(){
+      const SYMBOLS = ['AAPL','MSFT','GOOG','TSLA','AMZN','BTC-USD'];
+      const base = { AAPL:172.34, MSFT:330.12, GOOG:142.88, TSLA:250.1, AMZN:140.5, 'BTC-USD':47000 };
+      const marketListEl = document.getElementById('marketList');
+      const chartEl = document.getElementById('chart');
+      const ordersEl = document.getElementById('orders');
+      const balanceEl = document.getElementById('balance');
+      let balance = 100000;
+      const orders = [];
+
+      let selected = SYMBOLS[0];
+      // create symbol buttons
+      SYMBOLS.forEach(sym => {
+        const b = document.createElement('div');
+        b.className = 'sym' + (sym===selected ? ' active' : '');
+        b.textContent = sym;
+        b.onclick = ()=> { select(sym); };
+        marketListEl.appendChild(b);
+      });
+
+      function select(sym){
+        selected = sym;
+        Array.from(marketListEl.children).forEach(c => c.classList.toggle('active', c.textContent===sym));
+        renderChart();
+      }
+
+      function jitter(price){ return +(price * (1 + (Math.random()-0.5)*0.01)).toFixed(2); }
+
+      function getPrice(sym){ return jitter(base[sym] || 100); }
+
+      function renderChart(){
+        // simple ASCII-ish sparkline display with JS
+        const p = getPrice(selected);
+        chartEl.textContent = `${selected}  •  ₹ ${p}`;
+      }
+
+      // periodic update
+      setInterval(renderChart, 1400);
+      renderChart();
+
+      // place order handling
+      document.getElementById('placeBtn').onclick = async ()=>{
+        const side = document.getElementById('side').value;
+        const qty = Number(document.getElementById('qty').value) || 0;
+        const priceInput = document.getElementById('price').value;
+        const price = priceInput ? Number(priceInput) : getPrice(selected);
+        if (!qty || qty <= 0){ alert('Enter a valid quantity'); return; }
+        const cost = qty * price;
+        if (side === 'BUY' && cost > balance){ alert('Insufficient balance'); return; }
+        // simulate server call delay
+        document.getElementById('placeBtn').textContent = 'Placing...';
+        await new Promise(r => setTimeout(r, 700));
+        const order = {
+          id: Math.random().toString(36).slice(2,9),
+          symbol: selected,
+          side, qty, price, timestamp: Date.now()
+        };
+        orders.unshift(order);
+        if (side === 'BUY') balance -= cost;
+        else balance += cost;
+        updateOrders();
+        document.getElementById('placeBtn').textContent = 'Place Order';
+      };
+
+      function updateOrders(){
+        balanceEl.textContent = '₹ ' + balance.toLocaleString();
+        if (orders.length === 0){
+          ordersEl.textContent = 'No orders yet';
+          return;
+        }
+        ordersEl.innerHTML = '';
+        orders.forEach(o=>{
+          const d = document.createElement('div');
+          d.style.marginBottom = '8px';
+          d.innerHTML = `<strong>${o.side}</strong> ${o.qty} × ${o.symbol} @ ₹ ${o.price} <div style="font-size:12px;color:${getComputedStyle(document.body).getPropertyValue('--muted')};margin-top:4px">${new Date(o.timestamp).toLocaleString()}</div>`;
+          ordersEl.appendChild(d);
+        });
+      }
+
+      // set year
+      document.getElementById('year').textContent = new Date().getFullYear();
+    })();
+  </script>
+</body>
+</html>
